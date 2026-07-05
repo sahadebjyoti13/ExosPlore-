@@ -1,0 +1,19 @@
+# Python bytecode caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local environment and IDE settings
+.venv/
+venv/
+ENV/
+.vscode/
+.idea/
+
+# Heavy Space Science Telemetry Assets (Do not upload to GitHub)
+*.fits
+data/raw/
+temp_uploaded_target.fits
+
+# Local trained weights (Keep your production releases clean)
+models/transit_cnn.pth
