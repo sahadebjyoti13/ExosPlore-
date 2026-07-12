@@ -92,12 +92,13 @@ if uploaded_file is not None:
         st.write("---")
 
         # --- TAB LAYOUT SYSTEM ---
-        tab1, tab2, tab3, tab4 = st.tabs(
+        tab1, tab2, tab3, tab4, tab5 = st.tabs(
             [
                 "📈 Light Curve & Preprocessing",
                 "🎯 Detection & Classification",
                 "📋 Characterization Parameters",
                 "🚫 Rejected Detections Dashboard",
+                "📊 Model Evaluation Metrics",
             ]
         )
 
@@ -327,6 +328,105 @@ if uploaded_file is not None:
                 caption="TESS Space Telescope Science Verification Field Context",
                 width=400,
             )
+
+            # TAB 5 : Evaluation metrics
+        with tab5:
+            st.markdown("### 📊 Pipeline Validation Performance Suite")
+            st.markdown(
+                "This panel displays system-wide verification metrics calculated against the curated testing catalog."
+            )
+
+            import os
+            import json
+            import pandas as pd
+            import subprocess
+
+            # --- AUTOMATION UPGRADE: Run evaluation directly from UI ---
+            if st.button("🚀 Execute Live Evaluation"):
+                with st.spinner(
+                    "Evaluating network weights against testing catalog... Please wait."
+                ):
+                    # This runs the terminal command automatically in the background
+                    subprocess.run(["python", "evaluate.py"])
+                    # Internally refreshes the UI data without clearing the file uploader
+                    st.rerun()
+
+            st.markdown("---")
+
+            metrics_path = "models/metrics.json"
+
+            # Dynamically check if the real metrics file exists
+            if os.path.exists(metrics_path):
+                try:
+                    with open(metrics_path, "r") as f:
+                        real_metrics = json.load(f)
+
+                    report_data = real_metrics["classification_report"]
+
+                    # 1. Parse the JSON into a clean Pandas Dataframe for the Report
+                    classes = [
+                        "Planetary Transit (0)",
+                        "Eclipsing Binary (1)",
+                        "Stellar Blend (2)",
+                        "Stellar Variability (3)",
+                        "Noise/Unknown (4)",
+                    ]
+                    parsed_report = {
+                        "Stellar Category Class": classes,
+                        "Precision Rating": [
+                            round(report_data[c]["precision"], 2) for c in classes
+                        ],
+                        "Recall Rate": [
+                            round(report_data[c]["recall"], 2) for c in classes
+                        ],
+                        "Calculated F1-Score": [
+                            round(report_data[c]["f1-score"], 2) for c in classes
+                        ],
+                    }
+                    df_report = pd.DataFrame(parsed_report)
+
+                    # 2. Parse the JSON Matrix into a Dataframe
+                    matrix_data = real_metrics["confusion_matrix"]
+                    columns_labels = [
+                        "Pred (0)",
+                        "Pred (1)",
+                        "Pred (2)",
+                        "Pred (3)",
+                        "Pred (4)",
+                    ]
+                    index_labels = [
+                        "True Transit (0)",
+                        "True Eclipse (1)",
+                        "True Blend (2)",
+                        "True Variab. (3)",
+                        "True Noise (4)",
+                    ]
+                    df_matrix = pd.DataFrame(
+                        matrix_data, columns=columns_labels, index=index_labels
+                    )
+
+                    # Render the dynamic UI columns
+                    ui_col1, ui_col2 = st.columns(2)
+                    with ui_col1:
+                        st.markdown(
+                            "#### 📑 Scientific Classification Performance Metrics"
+                        )
+                        st.table(df_report)
+
+                    with ui_col2:
+                        st.markdown("#### 🧩 Confusion Resolution Matrix")
+                        st.table(df_matrix)
+
+                    st.success(
+                        "🎯 Live pipeline evaluation metrics successfully loaded from production checkpoint assets."
+                    )
+
+                except Exception as e:
+                    st.error(f"⚠️ Error parsing the metrics file: {str(e)}")
+            else:
+                st.warning(
+                    "⚠️ Metrics data not found. Click the button above to generate the live performance report."
+                )
 
     else:
         st.error(f"Error Processing File: {results['status']}")

@@ -93,6 +93,29 @@ def run_evaluation(test_csv_path="data/curated/train.csv", batch_size=16):
     matrix = confusion_matrix(all_targets, all_preds, labels=range(5))
     print(matrix)
     print("=" * 60)
+    import json
+
+    # Generate the dictionary version of the classification report
+    report_dict = classification_report(
+        all_targets,
+        all_preds,
+        target_names=class_names,
+        zero_division=0,
+        output_dict=True,
+    )
+
+    # Package it with the matrix (converted to a standard list)
+    metrics_export = {
+        "classification_report": report_dict,
+        "confusion_matrix": matrix.tolist(),
+    }
+
+    # Save it seamlessly into the models directory
+    export_path = "models/metrics.json"
+    with open(export_path, "w") as f:
+        json.dump(metrics_export, f)
+
+    print(f"💾 Success: Evaluation metrics saved to {export_path} for Dashboard UI.")
 
 
 if __name__ == "__main__":
