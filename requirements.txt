@@ -1,0 +1,11 @@
+lightkurve
+astropy
+numpy
+scipy
+pandas
+torch
+scikit-learn
+matplotlib
+plotly
+streamlit
+batman-package
