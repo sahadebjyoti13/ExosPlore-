@@ -24,9 +24,33 @@ An end-to-end AI pipeline that ingests raw TESS space telescope light curves to 
 """)
 st.write("---")
 
-# Sidebar configurations
+# ==========================================
+# SIDEBAR CONFIGURATIONS
+# ==========================================
 st.sidebar.header("📁 Data Ingestion Control")
 uploaded_file = st.sidebar.file_uploader("Upload Raw TESS .fits File", type=["fits"])
+
+# --- NEW: BIG DATA PRE-CACHING AUTOMATION ---
+st.sidebar.markdown("---")
+st.sidebar.markdown("### ⚙️ Big Data Processing")
+st.sidebar.markdown("Prepare Sector 20k+ datasets for rapid network training.")
+
+if st.sidebar.button("⚡ Execute Pre-Caching Pipeline"):
+    with st.sidebar.spinner(
+        "Compressing raw FITS telemetry into binary matrices... Please wait."
+    ):
+        import subprocess
+
+        try:
+            # Automates the terminal command directly from the UI
+            subprocess.run(["python", "-m", "src.cache_dataset"], check=True)
+            st.sidebar.success(
+                "✅ Pre-Caching Complete! Arrays saved to data/processed/"
+            )
+        except Exception as e:
+            st.sidebar.error(f"❌ Caching Failed: {str(e)}")
+
+st.sidebar.markdown("---")
 
 # Status of model weights check
 MODEL_PATH = "models/transit_cnn.pth"
@@ -35,7 +59,10 @@ if os.path.exists(MODEL_PATH):
 else:
     st.sidebar.warning("⚠️ Model Running in Emulation Mode")
 
-# Main Execution Routing Loop
+
+# ==========================================
+# MAIN EXECUTION ROUTING LOOP
+# ==========================================
 if uploaded_file is not None:
     # Save the uploaded buffer stream to a temp file safely
     temp_path = "temp_uploaded_target.fits"
@@ -68,7 +95,7 @@ if uploaded_file is not None:
         with col1:
             st.markdown(
                 f"""
-            <div style="padding: 15px; border-radius: 5px; {color_map[results['predicted_class']]} text-align: center;">
+            <div style="padding: 15px; border-radius: 5px; {color_map.get(results['predicted_class'], color_map['Noise/Unknown'])} text-align: center;">
                 <h4 style="margin: 0;">Predicted Class</h4>
                 <h2 style="margin: 5px 0 0 0; font-size: 22px;">{results['predicted_class']}</h2>
             </div>
@@ -329,7 +356,7 @@ if uploaded_file is not None:
                 width=400,
             )
 
-            # TAB 5 : Evaluation metrics
+        # --- TAB 5: EVALUATION METRICS ---
         with tab5:
             st.markdown("### 📊 Pipeline Validation Performance Suite")
             st.markdown(
@@ -346,16 +373,13 @@ if uploaded_file is not None:
                 with st.spinner(
                     "Evaluating network weights against testing catalog... Please wait."
                 ):
-                    # This runs the terminal command automatically in the background
                     subprocess.run(["python", "evaluate.py"])
-                    # Internally refreshes the UI data without clearing the file uploader
                     st.rerun()
 
             st.markdown("---")
 
             metrics_path = "models/metrics.json"
 
-            # Dynamically check if the real metrics file exists
             if os.path.exists(metrics_path):
                 try:
                     with open(metrics_path, "r") as f:
@@ -363,7 +387,6 @@ if uploaded_file is not None:
 
                     report_data = real_metrics["classification_report"]
 
-                    # 1. Parse the JSON into a clean Pandas Dataframe for the Report
                     classes = [
                         "Planetary Transit (0)",
                         "Eclipsing Binary (1)",
@@ -385,7 +408,6 @@ if uploaded_file is not None:
                     }
                     df_report = pd.DataFrame(parsed_report)
 
-                    # 2. Parse the JSON Matrix into a Dataframe
                     matrix_data = real_metrics["confusion_matrix"]
                     columns_labels = [
                         "Pred (0)",
@@ -405,7 +427,6 @@ if uploaded_file is not None:
                         matrix_data, columns=columns_labels, index=index_labels
                     )
 
-                    # Render the dynamic UI columns
                     ui_col1, ui_col2 = st.columns(2)
                     with ui_col1:
                         st.markdown(
@@ -431,7 +452,6 @@ if uploaded_file is not None:
     else:
         st.error(f"Error Processing File: {results['status']}")
 
-    # Clean up local temporary file footprint buffer assets
     if os.path.exists(temp_path):
         os.remove(temp_path)
 else:
