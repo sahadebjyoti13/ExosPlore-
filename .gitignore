@@ -10,10 +10,14 @@ ENV/
 .vscode/
 .idea/
 
-# Heavy Space Science Telemetry Assets (Do not upload to GitHub)
+# Heavy Space Science Telemetry Assets
 *.fits
 data/raw/
 temp_uploaded_target.fits
 
-# Local trained weights (Keep your production releases clean)
-models/transit_cnn.pth
+# Heavy Cached Binary Matrices (DO NOT UPLOAD)
+data/processed/
+*.npy
+
+# NOTE: We are intentionally allowing models/transit_cnn.pth to upload 
+# so the Streamlit Cloud server has access to the trained weights!
