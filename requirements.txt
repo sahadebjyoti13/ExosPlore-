@@ -8,4 +8,6 @@ scikit-learn
 matplotlib
 plotly
 streamlit
+shap
+tqdm
 batman-package

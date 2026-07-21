@@ -1,9 +1,34 @@
 # 🌌 ExosPlore
-### AI-Enabled Exoplanet Transit Detection from TESS Light Curves
 
-**Bharatiya Antariksh Hackathon 2026 — Problem Statement 7 (ISRO)**
+### An open-source pipeline for TESS exoplanet transit detection
 
-ExosPlore is an end-to-end AI pipeline that ingests raw TESS space telescope light curves and automatically detects, classifies, and physically characterizes exoplanet transit signals. It distinguishes true planetary transits from look-alike phenomena — eclipsing binaries, stellar blends, and starspots — and reports orbital parameters with confidence scores, all through an interactive dashboard.
+ExosPlore ingests raw TESS space telescope light curves and runs them
+through physics-aware preprocessing, Box Least Squares transit
+detection, a 1D-CNN + attention classifier, and transit
+characterization — with an interactive Streamlit dashboard on top.
+
+It started as a submission for the **Bharatiya Antariksh Hackathon
+2026 (ISRO Problem Statement 7)** — we weren't selected for the
+finale, so we're open-sourcing it instead. See
+[Project History](#project-history) at the bottom.
+
+## Status (read this before trusting any output)
+
+| Component | Status |
+| --- | --- |
+| **Preprocessing** (`src/preprocess.py`) | ✅ Real. Quality-flag filtering, sigma-clipping, normalization, Savitzky-Golay detrending — verified against a known target (see [Calibration](#calibration-check) below). |
+| **BLS transit detection** (`src/bls_detector.py`) | ✅ Real. Verified to recover known orbital parameters for WASP-18b. |
+| **Transit characterization** (`src/characterizer.py`) | ✅ Real. Trapezoid fit (or `batman` physical model if installed) on the phase-folded signal. |
+| **1D-CNN + Attention classifier** (`src/classifier.py`) | ⚠️ **Architecture only, currently untrained.** No checkpoint ships in this repo — see [Training on Real Data](#training-on-real-data). Until you train one, the dashboard reports BLS detections honestly and skips classification rather than guessing. |
+| **Dashboard** (`app.py`) | ✅ Real, and now gates the classification UI correctly when no trained model is present. |
+
+An earlier version of this repo shipped a `models/transit_cnn.pth`
+checkpoint trained on 20 rows that were all the same light curve file
+under 5 fabricated labels — it scored 20% accuracy (chance level) and
+predicted "Planetary Transit" for every input, and the dashboard
+silently faked an 85%-confidence result whenever no checkpoint was
+present. Both have been removed. See `models/README.md` and
+`CONTRIBUTING.md` for how to fix that for real.
 
 ---
 
@@ -25,6 +50,7 @@ Raw TESS .fits
                 ▼
 ┌─────────────────────────────────┐
 │  MODULE 3 · CNN Classifier      │  1D-CNN + Multihead Attention → 5-class prediction + confidence
+│                                  │  (needs a real trained checkpoint — see Status above)
 └───────────────┬─────────────────┘
                 │
         ┌───────┴────────┐
@@ -53,22 +79,32 @@ Raw TESS .fits
 ```
 ExosPlore/
 ├── data/
-│   ├── raw/                     # .fits files (git-ignored — large files)
+│   ├── raw/                     # .fits files (git-ignored — large, and personal to your download)
 │   └── curated/
-│       └── train.csv            # Training index: [tic_id, label, fits_path]
+│       ├── catalog.csv          # master labeled index built by src/data_acquisition.py
+│       ├── needs_review.csv     # auto-labeled rows awaiting human verification
+│       └── train.csv / val.csv / test.csv   # produced by scripts/split_dataset.py
 ├── models/
-│   └── transit_cnn.pth          # Trained PyTorch model checkpoint
+│   └── (no checkpoint shipped — see models/README.md)
 ├── src/
 │   ├── preprocess.py            # Module 1 — physics-aware preprocessing
 │   ├── bls_detector.py          # Module 2 — BLS period search & phase-folding
 │   ├── classifier.py            # Module 3 — 1D-CNN + Attention model
 │   ├── characterizer.py         # Module 4 — trapezoid/batman transit fitting
-│   └── pipeline.py              # Orchestrator — wires modules 1–4 end-to-end
-├── train.py                     # Standalone model training script
-├── evaluate.py                  # Test-set evaluation: F1, confusion matrix
+│   ├── pipeline.py              # Orchestrator — wires modules 1–4 end-to-end
+│   ├── data_acquisition.py      # Builds a real labeled catalog from public archives
+│   └── cache_dataset.py         # Pre-computes features so training doesn't redo BLS every epoch
+├── scripts/
+│   └── split_dataset.py         # Stratified train/val/test split, held out consistently
+├── tests/
+│   └── test_pipeline_mechanics.py  # Synthetic injection-recovery tests (no network needed)
+├── train.py                     # Model training
+├── evaluate.py                  # Held-out test-set evaluation: F1, confusion matrix
 ├── app.py                       # Module 5 — Streamlit dashboard
 ├── requirements.txt
-└── README.md
+├── LICENSE
+├── CITATION.cff
+└── CONTRIBUTING.md
 ```
 
 ---
@@ -82,164 +118,132 @@ ExosPlore/
 
 ### Install Dependencies
 
-```bash
-python -m pip install lightkurve astropy numpy scipy pandas torch torchvision scikit-learn matplotlib plotly streamlit shap requests tqdm
 ```
+pip install -r requirements.txt
+```
+> **Note on `batman-package`:** requires Microsoft C++ Build Tools on
+> Windows. It's optional — the pipeline falls back to a trapezoid model
+> if `batman` isn't installed. To install it: get the
+> [C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+> (select "Desktop development with C++"), then `pip install batman-package`.
 
-> **Note on `batman-package`:** This package requires Microsoft C++ Build Tools on Windows. It is optional — the pipeline automatically falls back to a trapezoid model if batman is not installed.
->
-> To install it: download [C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/), select **"Desktop development with C++"**, then run `python -m pip install batman-package`.
-
-### Add Scripts to PATH (Windows)
-
-If you see warnings like `streamlit.exe is not on PATH`, add this to your user PATH variable:
+### Verify the Installation
 
 ```
-C:\Users\<YOUR_USERNAME>\AppData\Roaming\Python\Python3XX\Scripts
-```
-
-Then reopen PowerShell and verify:
-
-```bash
-streamlit --version
-```
-
-### Verify the Full Installation
-
-```python
-# python verify_setup.py
+python -c "
 import lightkurve, astropy, numpy, scipy, pandas, torch, sklearn, matplotlib, plotly, streamlit, shap
-print("Python:", __import__('sys').version)
-print("PyTorch:", torch.__version__)
-print("CUDA:", torch.cuda.is_available())
+print('PyTorch:', torch.__version__)
+print('CUDA:', torch.cuda.is_available())
 try:
-    import batman; print("Batman: OK")
+    import batman; print('Batman: OK')
 except ImportError:
-    print("Batman: not installed — trapezoid fallback active")
-print("All checks passed.")
+    print('Batman: not installed — trapezoid fallback active')
+"
 ```
 
 ---
 
-## Download Test Data
+## Training on Real Data
 
-Before the hackathon (do this on reliable internet — venue WiFi is unpredictable):
+There is no shortcut here, and no mock-data fallback in this repo
+anymore. Three steps:
 
-```python
-# python download_test_data.py
-import lightkurve as lk, os
-os.makedirs("data/raw", exist_ok=True)
+### 1. Build a real, citable catalog
 
-targets = [
-    ("TIC 100100827", "wasp18"),      # WASP-18b — deep transit, easy to detect
-    ("TIC 420814525", "hd209458"),    # HD 209458b — classic benchmark
-    ("TIC 59873330",  "toi132"),      # TOI-132b — TESS discovery target
-]
-for tic, name in targets:
-    sr = lk.search_lightcurve(tic, mission="TESS", exptime=120)
-    if len(sr) > 0:
-        sr[0].download().to_fits(f"data/raw/{name}_test.fits", overwrite=True)
-        print(f"Saved: data/raw/{name}_test.fits")
+```
+python -m src.data_acquisition
 ```
 
----
+This pulls confirmed planets and false positives from the
+[ExoFOP-TESS TOI table](https://exofop.ipac.caltech.edu/tess/) and
+eclipsing binaries from the
+[TESS EB Catalog](https://archive.stsci.edu/hlsp/tess-ebs) (Prša et al.
+2022) — both public, peer-reviewed sources. **Classes 0 and 1 are
+trustworthy as downloaded.** Classes 2–4 (blend / variability / noise)
+don't have one clean public catalog with this exact taxonomy, so the
+script makes a best-effort automatic guess for them and flags every one
+of those rows `needs_review=True`. Read the docstring at the top of
+`src/data_acquisition.py` before relying on those.
 
-## Training the Model
+### 2. Verify the flagged rows, then split
 
-### Step 1 — Prepare the Training Index
+Check `data/curated/needs_review.csv` in the dashboard, move confirmed
+rows into `catalog.csv`, then:
 
-Open `data/curated/train.csv` and populate it with one row per labelled light curve:
-
-```csv
-tic_id,label,fits_path
-100100827,0,data/raw/wasp18_test.fits
-...
+```
+python scripts/split_dataset.py
 ```
 
-**Label mapping:**
+This produces `train.csv` / `val.csv` / `test.csv`, stratified by
+class, with `needs_review` rows excluded by default. The test split is
+written once and never touched again by training — see `evaluate.py`.
 
-| Label | Class |
-|---|---|
-| `0` | Planetary Transit |
-| `1` | Eclipsing Binary |
-| `2` | Stellar Blend |
-| `3` | Stellar Variability / Starspots |
-| `4` | Noise / Unknown |
+### 3. Cache features and train
 
-When ISRO provides the official curated dataset, place the `.fits` files into `data/raw/` and update this CSV to point to them.
-
-### Step 2 — Run Training
-
-```bash
-python train.py
+```
+python -m src.cache_dataset --csv data/curated/train.csv --out data/processed
+python -m src.cache_dataset --csv data/curated/val.csv   --out data/processed
+python train.py --epochs 40 --batch_size 32
 ```
 
-The script:
-1. Reads `train.csv`, routes each file through Modules 1 and 2 to extract a 200-point phase-folded segment
-2. Handles class imbalance via `WeightedRandomSampler` (prevents the model from predicting "Noise" for everything)
-3. Trains the 1D-CNN + Attention model and saves the best checkpoint to `models/transit_cnn.pth`
-4. Prints per-class accuracy and a confusion matrix at the end
+No GPU? CPU training is fine at realistic dataset sizes for a
+hackathon-scale project — a few minutes to tens of minutes depending on
+how much data you've gathered. For a much larger run, Google Colab's
+free tier GPU works too.
 
-### Training Parameters to Adjust
+### 4. Evaluate honestly
 
-When running on the full ISRO dataset (thousands of rows), open `train.py` and change:
-
-```python
-epochs = 3      →  epochs = 40      # or 50
-batch_size = 2  →  batch_size = 32  # or 64 depending on RAM
+```
+python evaluate.py
 ```
 
-> No GPU? Training the small model on CPU takes 10–30 minutes on a typical laptop, which is fine within the 30-hour hackathon window. Alternatively, train on [Google Colab](https://colab.research.google.com) (free T4 GPU, ~5 minutes), download `models/transit_cnn.pth`, and place it locally.
+Reports precision/recall/F1/confusion matrix on `test.csv` — a split
+the model has never seen, computed once you're actually done tuning.
+Don't re-run `train.py` after looking at these numbers and expect the
+next `evaluate.py` run to still be a fair test.
 
 ---
 
 ## Running the Dashboard
 
-```bash
+```
 python -m streamlit run app.py
 ```
 
-Open **http://localhost:8501** in your browser.
-
-Upload any TESS `.fits` file. The pipeline runs automatically and displays:
+Open **<http://localhost:8501>**. Upload any TESS `.fits` file:
 
 - **Tab 1 — Light Curve:** Raw flux, preprocessed flux, BLS periodogram
-- **Tab 2 — Detection:** Phase-folded curve with transit model overlay, predicted class, confidence bar chart
-- **Tab 3 — Parameters:** Period (days), Duration (hours), Depth (ppm), SNR, Confidence %
-- **Tab 4 — Rejected Detections:** Correctly flagged eclipsing binaries and blends shown for transparency
+- **Tab 2 — Detection:** Phase-folded curve, predicted class + confidence (only if a trained checkpoint exists — see Status)
+- **Tab 3 — Parameters:** Period, Duration, Depth, SNR, Confidence
+- **Tab 4 — Rejected Detections:** Correctly flagged eclipsing binaries and blends, for transparency
+- **Tab 5 — Model Evaluation Metrics:** Whatever `evaluate.py` last produced, with the test-set size shown
 
-### Quick one-line calibration test
+### Calibration check
 
-```bash
+The BLS + preprocessing modules (not the classifier) have been verified
+end-to-end against a known target:
+
+```
 python -c "
 import lightkurve as lk
 sr = lk.search_lightcurve('TIC 100100827', mission='TESS', exptime=120)
 sr[0].download().to_fits('wasp18_test.fits', overwrite=True)
-print('Download complete.')
 "
 ```
 
-Then upload `wasp18_test.fits` into the dashboard. Expected results:
+Upload `wasp18_test.fits` to the dashboard. Expected:
 
 | Parameter | Expected Value |
-|---|---|
+| --- | --- |
 | Period | ~0.941 days |
 | Duration | ~2.4 hours |
 | Depth | ~9,960 ppm |
 | SNR | ~13–14 |
-| Classification | Planetary Transit |
 
----
-
-## Evaluation
-
-Once you have a labelled test set, run:
-
-```bash
-python evaluate.py
-```
-
-This reports overall accuracy, per-class F1-score, precision, recall, and a confusion matrix. It also displays three example detections: one confirmed planet, one correctly rejected eclipsing binary, and one correctly rejected stellar blend.
+These match the published WASP-18b ephemeris — good evidence the
+physics pipeline (Modules 1, 2, 4) is correct. It says nothing about
+the classifier, which is architecture without training data until you
+run the steps above.
 
 ---
 
@@ -248,21 +252,21 @@ This reports overall accuracy, per-class F1-score, precision, recall, and a conf
 ### ✅ Safe to Modify
 
 | File / Setting | What you can change |
-|---|---|
-| `train.py` → `epochs`, `batch_size` | Scale up when ISRO data arrives |
-| `data/curated/train.csv` | Add, remove, or update rows freely |
+| --- | --- |
+| `train.py` → `--epochs`, `--batch_size`, `--lr` | CLI args now, not hardcoded |
+| `data/curated/catalog.csv` | Add, remove, or relabel rows freely (see CONTRIBUTING.md) |
 | `app.py` — UI layout, tab order, colors, text | Cosmetic changes only — math backend is untouched |
 | `evaluate.py` | Add or remove metrics as needed |
 
 ### ❌ Do Not Touch Without Understanding the Consequences
 
 | File / Setting | Why it's locked |
-|---|---|
+| --- | --- |
 | `src/preprocess.py` → `window_length=401` | Tuned for 2-minute TESS cadence. Shortening it will erase transit dips by treating them as stellar variability. |
-| `src/preprocess.py` → `quality_bitmask=175` | Removing corrupted cadences. Changing this passes bad telemetry downstream. |
-| `src/bls_detector.py` → period grid (0.5–15 days, 10,000 steps) | Hard-coded to ISRO's problem scope. Reducing resolution causes the search to miss short or shallow planetary periods. |
-| `src/classifier.py` → layer channels and dimensions | `Conv1d(1→16→32→64)`, `AdaptiveAvgPool1d(32)`, `MultiheadAttention(embed_dim=64)` are coupled. Changing one channel without updating downstream dimensions causes tensor shape crashes. |
-| `src/bls_detector.py` → output length (200 points) | The CNN input is hardcoded to accept exactly 200 points. Changing this breaks the model. |
+| `src/preprocess.py` → `quality_bitmask=175` | Removes corrupted cadences. Changing this passes bad telemetry downstream. |
+| `src/bls_detector.py` → period grid (0.5–15 days, 10,000 steps) | Hard-coded to the original hackathon's problem scope. Reducing resolution causes the search to miss short or shallow planetary periods. |
+| `src/classifier.py` → layer channels and dimensions | `Conv1d(1→16→32→64)`, `MultiheadAttention(embed_dim=64)` are coupled. Changing one channel without updating downstream dimensions causes tensor shape crashes. |
+| `src/bls_detector.py` → output length (200 points) | **Correction from the original README:** this does *not* crash the model at other lengths — `AdaptiveAvgPool1d(32)` makes the classifier shape-compatible with any input length. That's actually worse: the model will silently run on a 150- or 500-point segment and produce a meaningless prediction with no error. Keep this at 200 because that's what any trained checkpoint expects, not because anything will crash if you don't. |
 
 ---
 
@@ -288,29 +292,16 @@ Output: logits over 5 classes (softmax → confidence score)
 
 ## Known Constraints
 
-- **`batman-package`** requires Microsoft C++ Build Tools on Windows. The pipeline automatically uses a trapezoid fallback if batman is not available. This is fully acceptable for evaluation.
-- **No CUDA GPU required.** Training runs on CPU. For faster training, use Google Colab and transfer the `.pth` checkpoint.
-- **Python 3.14** is fully supported. All packages verified with the latest wheels.
-- **ISRO curated dataset** has not yet been received. The current `transit_cnn.pth` was trained on a minimal mock setup for verification only. Retrain with `epochs=40`, `batch_size=32` once the official data arrives.
-
----
-
-## Verified Results (WASP-18b Calibration Run)
-
-| Metric | Value |
-|---|---|
-| Period | 0.94084 days |
-| Transit Duration | 2.41 hours |
-| Transit Depth | 9964.1 ppm |
-| SNR | 13.78 |
-| Pipeline Status | ✅ End-to-end success |
+- **`batman-package`** requires Microsoft C++ Build Tools on Windows; the pipeline falls back to a trapezoid model automatically.
+- **No CUDA GPU required.** CPU training works at realistic dataset sizes.
+- **Classes 2–4 have no clean public label source** — see `src/data_acquisition.py`'s docstring. This is a real, unsolved data problem, not a bug; contributions here are the most valuable kind (see `CONTRIBUTING.md`).
 
 ---
 
 ## Tech Stack
 
 | Category | Tools |
-|---|---|
+| --- | --- |
 | Language | Python 3.10–3.14 |
 | Astronomy I/O | Lightkurve, Astropy |
 | Signal Detection | Astropy BLS (`BoxLeastSquares`) |
@@ -320,18 +311,25 @@ Output: logits over 5 classes (softmax → confidence score)
 | Visualization | Matplotlib, Plotly |
 | Dashboard | Streamlit |
 | Explainability | SHAP |
-| Version Control | Git + GitHub |
+| Data sources | ExoFOP-TESS, TESS EB Catalog (Prsa et al. 2022), MAST |
 
 ---
 
-## Hackathon Context
+## Citation
 
-- **Event:** Bharatiya Antariksh Hackathon 2026
-- **Organizer:** ISRO, powered by Hack2skill
-- **Problem Statement:** 7 — AI-enabled Detection of Exoplanets from Noisy Astronomical Light Curves
-- **Grand Finale:** August 6–7, 2026 (30-hour window)
-- **Data Source:** TESS light curves from [MAST Archive](https://archive.stsci.edu/tess/tic_ctl.html)
+If you use this in research, see `CITATION.cff` (GitHub's "Cite this
+repository" button will pick it up automatically).
 
----
+## License
 
-*Built for ISRO BAH 2026. Pipeline verified on real TESS telemetry (WASP-18b, TIC 100100827).*
+MIT — see `LICENSE`.
+
+## Project History
+
+Originally built for the **Bharatiya Antariksh Hackathon 2026**
+(ISRO Problem Statement 7 — AI-enabled Detection of Exoplanets from
+Noisy Astronomical Light Curves, organized by ISRO, powered by
+Hack2skill; grand finale August 6–7, 2026). Not selected for the
+finale. Open-sourced afterward so the physics pipeline — which is
+real and verified — doesn't go to waste, and so the classifier can
+actually get trained on real data by whoever wants to pick it up.

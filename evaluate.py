@@ -1,122 +1,96 @@
 # evaluate.py
+"""
+Evaluates the trained checkpoint on data/curated/test.csv — the split
+scripts/split_dataset.py carves out and that train.py never sees, so
+these numbers are an honest estimate of real-world performance rather
+than a number computed on data the model was tuned against.
+
+The previous version of this file re-split train.csv itself (same seed,
+same test_size as train.py's internal split) and called the result an
+"evaluation." At real dataset sizes that's still leakage-adjacent —
+val and "test" ended up being the same slice, used both for checkpoint
+selection and for the reported number. Point this at a real held-out
+test.csv instead.
+"""
 
 import os
+import json
+import argparse
 import torch
-import numpy as np
-import pandas as pd
 from torch.utils.data import DataLoader
 from sklearn.metrics import classification_report, confusion_matrix
 
-# Internal Module Imports
-from train import TESSDataset
+from train import build_dataset
 from src.classifier import TransitCNN
 
+CLASS_NAMES_INDEXED = [
+    "Planetary Transit (0)",
+    "Eclipsing Binary (1)",
+    "Stellar Blend (2)",
+    "Stellar Variability (3)",
+    "Noise/Unknown (4)",
+]
 
-def run_evaluation(test_csv_path="data/curated/train.csv", batch_size=16):
-    print("🔬 Initializing Pipeline Evaluation Suite...")
 
-    if not os.path.exists(test_csv_path):
-        print(f"❌ Error: Evaluation catalog tracker not found at {test_csv_path}")
-        return
-
-    # Load evaluation dataset
-    df = pd.read_csv(test_csv_path)
-
-    # If using mock testing setup, isolate a small validation chunk
-    if len(df) <= 25:
-        print("💡 Small testing database detected. Evaluating on validation slice.")
-        eval_df = df.iloc[15:].copy()
-    else:
-        # Split a distinct evaluation pool (or point this to a separate val.csv if provided)
-        from sklearn.model_selection import train_test_split
-
-        _, eval_df = train_test_split(
-            df, test_size=0.2, random_state=42, stratify=df["label"]
+def run_evaluation(
+    test_csv="data/curated/test.csv",
+    cache_dir="data/processed",
+    checkpoint_path="models/transit_cnn.pth",
+    batch_size=32,
+    out_path="models/metrics.json",
+):
+    if not os.path.exists(checkpoint_path):
+        raise FileNotFoundError(
+            f"No trained checkpoint at {checkpoint_path}. Run train.py first — "
+            f"there is no pretrained model shipped in this repo."
         )
 
-    eval_dataset = TESSDataset(eval_df, augment=False)
-    eval_loader = DataLoader(eval_dataset, batch_size=batch_size, shuffle=False)
+    test_dataset = build_dataset(test_csv, cache_dir, "test", augment=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-    # Load model configuration weights
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = TransitCNN().to(device)
-
-    model_weights_path = "models/transit_cnn.pth"
-    if not os.path.exists(model_weights_path):
-        print(
-            f"❌ Error: Trained weight checkpoint not found at {model_weights_path}. Run train.py first!"
-        )
-        return
-
-    model.load_state_dict(
-        torch.load(
-            model_weights_path, map_location=device if device.type == "cpu" else None
-        )
-    )
+    model.load_state_dict(torch.load(checkpoint_path, map_location=device))
     model.eval()
 
-    all_preds = []
-    all_targets = []
-
-    print(f"🔄 Processing evaluation telemetry over: {device}")
+    all_preds, all_targets = [], []
     with torch.no_grad():
-        for inputs, labels in eval_loader:
-            inputs, labels = inputs.to(device), labels.to(device)
+        for inputs, labels in test_loader:
+            inputs = inputs.to(device)
             outputs = model(inputs)
+            all_preds.extend(torch.argmax(outputs, dim=1).cpu().numpy())
+            all_targets.extend(labels.numpy())
 
-            preds = torch.argmax(outputs, dim=1).cpu().numpy()
-            all_preds.extend(preds)
-            all_targets.extend(labels.cpu().numpy())
+    print(f"Evaluated on {len(all_targets)} held-out test examples from {test_csv} "
+          f"(not used in training or checkpoint selection).")
 
-    # --- METRICS COMPILATION SYSTEM ---
-    class_names = [
-        "Planetary Transit (0)",
-        "Eclipsing Binary (1)",
-        "Stellar Blend (2)",
-        "Stellar Variability (3)",
-        "Noise/Unknown (4)",
-    ]
-
-    print("\n" + "=" * 60)
-    print("📊 ISRO PROBLEM STATEMENT 7 — CLASSIFICATION REPORT")
-    print("=" * 60)
-
-    # Print clean precision, recall, f1-score sheets
-    print(
-        classification_report(
-            all_targets, all_preds, target_names=class_names, zero_division=0
-        )
-    )
-
-    print("\n🧩 CONFUSION MATRIX (Rows: True, Columns: Predicted):")
-    print("-" * 55)
+    print(classification_report(all_targets, all_preds, target_names=CLASS_NAMES_INDEXED, zero_division=0))
     matrix = confusion_matrix(all_targets, all_preds, labels=range(5))
+    print("Confusion matrix (rows = true, columns = predicted):")
     print(matrix)
-    print("=" * 60)
-    import json
 
-    # Generate the dictionary version of the classification report
     report_dict = classification_report(
-        all_targets,
-        all_preds,
-        target_names=class_names,
-        zero_division=0,
-        output_dict=True,
+        all_targets, all_preds, target_names=CLASS_NAMES_INDEXED, zero_division=0, output_dict=True
     )
-
-    # Package it with the matrix (converted to a standard list)
     metrics_export = {
+        "n_test_examples": len(all_targets),
+        "test_csv": test_csv,
         "classification_report": report_dict,
         "confusion_matrix": matrix.tolist(),
+        "note": "Computed on a held-out test split never used during training or checkpoint selection.",
     }
-
-    # Save it seamlessly into the models directory
-    export_path = "models/metrics.json"
-    with open(export_path, "w") as f:
-        json.dump(metrics_export, f)
-
-    print(f"💾 Success: Evaluation metrics saved to {export_path} for Dashboard UI.")
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    with open(out_path, "w") as f:
+        json.dump(metrics_export, f, indent=2)
+    print(f"Saved metrics to {out_path}")
 
 
 if __name__ == "__main__":
-    run_evaluation()
+    parser = argparse.ArgumentParser(description="Evaluate the trained model on the held-out test set.")
+    parser.add_argument("--test_csv", default="data/curated/test.csv")
+    parser.add_argument("--cache_dir", default="data/processed")
+    parser.add_argument("--checkpoint", default="models/transit_cnn.pth")
+    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--out", default="models/metrics.json")
+    args = parser.parse_args()
+    run_evaluation(args.test_csv, args.cache_dir, args.checkpoint, args.batch_size, args.out)

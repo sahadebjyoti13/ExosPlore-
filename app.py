@@ -151,7 +151,10 @@ MODEL_PATH = "models/transit_cnn.pth"
 if os.path.exists(MODEL_PATH):
     st.sidebar.success("✅ Neural Network Weights Loaded")
 else:
-    st.sidebar.warning("⚠️ Model Running in Emulation Mode")
+    st.sidebar.warning(
+        "⚠️ No trained model checkpoint found. BLS detection still runs, "
+        "but class predictions are unavailable — see train.py."
+    )
 
 # ==========================================
 # MAIN EXECUTION ROUTING LOOP
@@ -184,20 +187,34 @@ if st.session_state.target_file is not None and os.path.exists(
         }
 
         with col1:
-            st.markdown(
-                f"""
-            <div style="padding: 15px; border-radius: 5px; {color_map.get(results['predicted_class'], color_map['Noise/Unknown'])} text-align: center;">
-                <h4 style="margin: 0;">Predicted Class</h4>
-                <h2 style="margin: 5px 0 0 0; font-size: 22px;">{results['predicted_class']}</h2>
-            </div>
-            """,
-                unsafe_allow_html=True,
-            )
+            if results["predicted_class"] is None:
+                st.markdown(
+                    """
+                <div style="padding: 15px; border-radius: 5px; background-color: #7f8c8d; color: white; text-align: center;">
+                    <h4 style="margin: 0;">Predicted Class</h4>
+                    <h2 style="margin: 5px 0 0 0; font-size: 18px;">No trained model — not classified</h2>
+                </div>
+                """,
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    f"""
+                <div style="padding: 15px; border-radius: 5px; {color_map.get(results['predicted_class'], color_map['Noise/Unknown'])} text-align: center;">
+                    <h4 style="margin: 0;">Predicted Class</h4>
+                    <h2 style="margin: 5px 0 0 0; font-size: 22px;">{results['predicted_class']}</h2>
+                </div>
+                """,
+                    unsafe_allow_html=True,
+                )
 
         with col2:
-            st.metric(
-                "Classification Confidence", f"{results['confidence'] * 100:.2f}%"
-            )
+            if results["confidence"] is None:
+                st.metric("Classification Confidence", "N/A")
+            else:
+                st.metric(
+                    "Classification Confidence", f"{results['confidence'] * 100:.2f}%"
+                )
         with col3:
             st.metric(
                 "BLS Candidate Period", f"{results['top_candidate']['period']:.5f} Days"

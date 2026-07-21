@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use ExosPlore in your research, please cite it as below."
+title: "ExosPlore: An Open-Source Pipeline for TESS Exoplanet Transit Detection"
+authors:
+  - family-names: Saha
+    given-names: Debjyoti
+repository-code: "https://github.com/sahadebjyoti13/ExosPlore-"
+license: MIT
+version: 0.1.0
+date-released: 2026-07-20
+keywords:
+  - exoplanets
+  - TESS
+  - transit photometry
+  - machine learning
+  - astronomy
+abstract: >
+  ExosPlore is an open-source pipeline that ingests TESS light curves,
+  runs physics-aware preprocessing and Box Least Squares transit
+  detection, classifies candidates with a 1D-CNN + attention network,
+  and characterizes confirmed transits. Originally built for the
+  Bharatiya Antariksh Hackathon 2026 (ISRO Problem Statement 7), it is
+  released for the community to use and extend.

@@ -66,35 +66,40 @@ def run_pipeline(
             class_idx, class_name, confidence, probs = predict(
                 model, top_cand["phase_folded_flux_200"], device=device
             )
-        else:
-            # Fallback for hackathon testing before training script executes
-            print(
-                f"--- Warning: Model checkpoint '{model_path}' not found. Emulating inference pass. ---"
-            )
-            class_idx = (
-                0  # Default to Transit for complete workflow verification testing
-            )
-            class_name = CLASS_NAMES[class_idx]
-            confidence = 0.85
-            probs = np.array([0.85, 0.05, 0.03, 0.05, 0.02])
 
-        pipeline_results["predicted_class"] = class_name
-        pipeline_results["confidence"] = confidence
-        pipeline_results["all_probabilities"] = {
-            CLASS_NAMES[i]: float(probs[i]) for i in range(5)
-        }
+            pipeline_results["predicted_class"] = class_name
+            pipeline_results["confidence"] = confidence
+            pipeline_results["all_probabilities"] = {
+                CLASS_NAMES[i]: float(probs[i]) for i in range(5)
+            }
 
-        # Step 4: Conditional Physics Engine Characterization Routing
-        if class_idx == 0:
-            pipeline_results["is_planet"] = True
-            # Pass top candidate parameters and flattened light curve values
-            char_metrics = characterize_transit(top_cand, t, f)
-            pipeline_results["characterization"] = char_metrics
+            # Step 4: Conditional Physics Engine Characterization Routing
+            if class_idx == 0:
+                pipeline_results["is_planet"] = True
+                # Pass top candidate parameters and flattened light curve values
+                char_metrics = characterize_transit(top_cand, t, f)
+                pipeline_results["characterization"] = char_metrics
+            else:
+                pipeline_results["is_planet"] = False
+                print(
+                    f"Candidate rejected from physical characterization. Target designated as: {class_name}"
+                )
         else:
-            pipeline_results["is_planet"] = False
-            print(
-                f"Candidate rejected from physical characterization. Target designated as: {class_name}"
+            # No trained checkpoint exists yet. Do NOT invent a classification —
+            # a fabricated "85% Planetary Transit" result here would be actively
+            # misleading to anyone using this for real research. Report the BLS
+            # detection honestly and leave classification/characterization empty
+            # until train.py has produced a real checkpoint from real data.
+            pipeline_results["status"] = (
+                f"No trained model checkpoint found at '{model_path}'. "
+                f"BLS detection above is real, but class prediction, confidence, "
+                f"and transit characterization are withheld — train a model on "
+                f"real data first (see train.py / src/data_acquisition.py)."
             )
+            pipeline_results["predicted_class"] = None
+            pipeline_results["confidence"] = None
+            pipeline_results["all_probabilities"] = {}
+            pipeline_results["is_planet"] = None
 
     except Exception as e:
         pipeline_results["status"] = f"Failed inside pipeline runtime layer: {str(e)}"
