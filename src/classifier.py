@@ -7,23 +7,30 @@ import torch.nn.functional as F
 import numpy as np
 
 # Exact Class Labels Mapping
+# v1 ships as a 2-class model: real, verified data only exists (so far)
+# for Planet vs Eclipsing-Binary-as-Not-a-Planet. The original 5-class
+# taxonomy is still valid architecture-wise (pass num_classes=5 and a
+# 5-item CLASS_NAMES list) once classes 2-4 have real, verified data —
+# see CONTRIBUTING.md.
 CLASS_NAMES = [
     "Planetary Transit",
-    "Eclipsing Binary",
-    "Stellar Blend",
-    "Stellar Variability",
-    "Noise/Unknown",
+    "Not a Planet",
 ]
 
 
 class TransitCNN(nn.Module):
-    def __init__(self):
+    def __init__(self, num_classes=None):
         super(TransitCNN, self).__init__()
         """
         Module 3: 1D-CNN + Attention Classifier
-        Exact architecture specified by ISRO Hackathon requirements.
+        Architecture per the original ISRO Hackathon spec; num_classes is
+        now configurable (was hardcoded to 5) so the same architecture can
+        run as the current 2-class model or a future expanded one.
         Input shape: (batch, 1, 200)
         """
+        num_classes = num_classes or len(CLASS_NAMES)
+        self.num_classes = num_classes
+
         # Conv Block 1: Conv1d(1->16, kernel=7, padding=3) -> BatchNorm1d -> ReLU -> MaxPool1d(2)
         self.conv1 = nn.Conv1d(in_channels=1, out_channels=16, kernel_size=7, padding=3)
         self.bn1 = nn.BatchNorm1d(16)
@@ -49,10 +56,10 @@ class TransitCNN(nn.Module):
             embed_dim=64, num_heads=4, batch_first=True
         )
 
-        # Fully Connected Block: Flatten -> Linear(2048->128) -> ReLU -> Dropout(0.3) -> Linear(128->5)
+        # Fully Connected Block: Flatten -> Linear(2048->128) -> ReLU -> Dropout(0.3) -> Linear(128->num_classes)
         self.fc1 = nn.Linear(64 * 32, 128)
         self.dropout = nn.Dropout(p=0.3)
-        self.fc2 = nn.Linear(128, 5)
+        self.fc2 = nn.Linear(128, num_classes)
 
     def forward(self, x):
         # Apply Block 1
@@ -144,6 +151,6 @@ if __name__ == "__main__":
         mock_output = model(mock_input)
         print("\n--- Network Forward Pass Successful! ---")
         print(f"Input Shape: {mock_input.shape}")
-        print(f"Output Logits Shape: {mock_output.shape} (Expected: [4, 5])")
+        print(f"Output Logits Shape: {mock_output.shape} (Expected: [4, {len(CLASS_NAMES)}])")
     except Exception as e:
         print(f"Error during network forward validation routing:\n{e}")

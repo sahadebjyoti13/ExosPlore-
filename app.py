@@ -180,11 +180,9 @@ if st.session_state.target_file is not None and os.path.exists(
 
         color_map = {
             "Planetary Transit": "background-color: #2ecc71; color: white;",
-            "Eclipsing Binary": "background-color: #e74c3c; color: white;",
-            "Stellar Blend": "background-color: #e67e22; color: white;",
-            "Stellar Variability": "background-color: #f1c40f; color: black;",
-            "Noise/Unknown": "background-color: #7f8c8d; color: white;",
+            "Not a Planet": "background-color: #e74c3c; color: white;",
         }
+        DEFAULT_BADGE_COLOR = "background-color: #7f8c8d; color: white;"
 
         with col1:
             if results["predicted_class"] is None:
@@ -200,7 +198,7 @@ if st.session_state.target_file is not None and os.path.exists(
             else:
                 st.markdown(
                     f"""
-                <div style="padding: 15px; border-radius: 5px; {color_map.get(results['predicted_class'], color_map['Noise/Unknown'])} text-align: center;">
+                <div style="padding: 15px; border-radius: 5px; {color_map.get(results['predicted_class'], DEFAULT_BADGE_COLOR)} text-align: center;">
                     <h4 style="margin: 0;">Predicted Class</h4>
                     <h2 style="margin: 5px 0 0 0; font-size: 22px;">{results['predicted_class']}</h2>
                 </div>
@@ -552,12 +550,13 @@ if st.session_state.target_file is not None and os.path.exists(
                         real_metrics = json.load(f)
 
                     report_data = real_metrics["classification_report"]
+                    # Derive the class list from the report itself instead of
+                    # hardcoding 5 names — this used to assume the original
+                    # 5-class taxonomy and would KeyError against the current
+                    # 2-class (Planet vs Not a Planet) model's metrics.json.
                     classes = [
-                        "Planetary Transit (0)",
-                        "Eclipsing Binary (1)",
-                        "Stellar Blend (2)",
-                        "Stellar Variability (3)",
-                        "Noise/Unknown (4)",
+                        k for k in report_data.keys()
+                        if k not in ("accuracy", "macro avg", "weighted avg")
                     ]
                     parsed_report = {
                         "Stellar Category Class": classes,
@@ -574,20 +573,9 @@ if st.session_state.target_file is not None and os.path.exists(
                     df_report = pd.DataFrame(parsed_report)
 
                     matrix_data = real_metrics["confusion_matrix"]
-                    columns_labels = [
-                        "Pred (0)",
-                        "Pred (1)",
-                        "Pred (2)",
-                        "Pred (3)",
-                        "Pred (4)",
-                    ]
-                    index_labels = [
-                        "True Transit (0)",
-                        "True Eclipse (1)",
-                        "True Blend (2)",
-                        "True Variab. (3)",
-                        "True Noise (4)",
-                    ]
+                    n = len(matrix_data)
+                    columns_labels = [f"Pred ({i})" for i in range(n)]
+                    index_labels = [f"True ({i}) {classes[i] if i < len(classes) else ''}" for i in range(n)]
                     df_matrix = pd.DataFrame(
                         matrix_data, columns=columns_labels, index=index_labels
                     )

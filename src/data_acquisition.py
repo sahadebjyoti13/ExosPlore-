@@ -116,7 +116,9 @@ def build_planet_rows(toi_df, limit, out_dir):
 
 
 def build_eb_rows(eb_df, limit, out_dir):
-    tic_col = _find_column(eb_df, "TIC")
+    # Confirmed from a real fetch: the Prsa et al. 2022 EB catalog uses
+    # 'tess_id' as its TIC identifier column, not 'TIC' as originally guessed.
+    tic_col = _find_column(eb_df, "tess_id")
     ebs = eb_df.drop_duplicates(subset=tic_col).head(limit)
 
     rows = []
@@ -157,19 +159,30 @@ def build_fp_rows(toi_df, limit, out_dir):
     return rows
 
 
-def build_noise_rows(limit, out_dir, seed_tics):
+def build_noise_rows(limit, out_dir, seed_tics, max_attempts=None):
     """Screens random TIC IDs for the absence of a significant BLS peak.
     Kept examples are candidate noise/no-detection cases, not confirmed
-    ones — hence needs_review."""
+    ones — hence needs_review.
+
+    IMPORTANT: seed_tics is drawn from the TOI catalog, and TOIs exist
+    specifically because they show a transit-like signal — so the
+    "no significant BLS peak" condition is rare among them almost by
+    definition. Earlier versions of this function had no attempt cap
+    and would grind through the entire multi-thousand-row TOI pool
+    hunting for a rare acceptance, taking the better part of a day
+    without necessarily ever reaching `limit`. max_attempts stops that."""
     from src.preprocess import preprocess_lightcurve
     from src.bls_detector import run_bls
+
+    if max_attempts is None:
+        max_attempts = min(len(seed_tics), max(limit * 8, 100))
 
     rows = []
     tried = 0
     pool = list(seed_tics)
     np.random.default_rng(42).shuffle(pool)
 
-    for tic_id in tqdm(pool, desc="Screening for noise examples"):
+    for tic_id in tqdm(pool[:max_attempts], desc="Screening for noise examples"):
         if len(rows) >= limit:
             break
         tried += 1
@@ -185,7 +198,11 @@ def build_noise_rows(limit, out_dir, seed_tics):
         except Exception:
             continue
 
-    print(f"Screened {tried} stars, kept {len(rows)} candidate noise examples.")
+    print(f"Screened {tried}/{max_attempts} candidates, kept {len(rows)}/{limit} requested noise examples.")
+    if len(rows) < limit:
+        print(f"NOTE: hit the {max_attempts}-attempt cap before reaching the target of {limit}. "
+              f"This is expected — TOIs rarely have zero signal by definition. Consider sourcing "
+              f"class 4 examples from a dedicated non-TOI field star sample instead (see CONTRIBUTING.md).")
     return rows
 
 
@@ -194,17 +211,27 @@ def build_catalog(n_planets=100, n_ebs=100, n_fp=60, n_noise=40,
     os.makedirs(raw_dir, exist_ok=True)
     os.makedirs(os.path.dirname(out_csv), exist_ok=True)
 
+    def checkpoint(rows, stage):
+        pd.DataFrame(rows).to_csv(out_csv, index=False)
+        print(f"[checkpoint] {len(rows)} rows saved to {out_csv} after '{stage}' stage.")
+
     toi_df = fetch_toi_table()
     eb_df = fetch_eb_catalog()
 
     rows = []
     rows += build_planet_rows(toi_df, n_planets, raw_dir)
+    checkpoint(rows, "planets")
+
     rows += build_eb_rows(eb_df, n_ebs, raw_dir)
+    checkpoint(rows, "eclipsing binaries")
+
     rows += build_fp_rows(toi_df, n_fp, raw_dir)
+    checkpoint(rows, "false positives")
 
     tic_col = _find_column(toi_df, "TIC ID")
     seed_pool = toi_df[tic_col].dropna().astype(int).unique().tolist()
     rows += build_noise_rows(n_noise, raw_dir, seed_pool)
+    checkpoint(rows, "noise screen")
 
     if not rows:
         raise RuntimeError("No rows were produced — check network access and the URLs at the top of this file.")

@@ -1,0 +1,118 @@
+tic_id,label,fits_path,source,needs_review
+260536927,1,data/raw\TIC260536927_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+77031414,0,data/raw\TIC77031414_planet.fits,ExoFOP TOI (CP/KP),False
+139528693,0,data/raw\TIC139528693_planet.fits,ExoFOP TOI (CP/KP),False
+141766191,1,data/raw\TIC141766191_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+237222864,0,data/raw\TIC237222864_planet.fits,ExoFOP TOI (CP/KP),False
+94637805,1,data/raw\TIC94637805_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+36724087,0,data/raw\TIC36724087_planet.fits,ExoFOP TOI (CP/KP),False
+466840711,0,data/raw\TIC466840711_planet.fits,ExoFOP TOI (CP/KP),False
+57652994,1,data/raw\TIC57652994_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+321312438,1,data/raw\TIC321312438_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+382069441,1,data/raw\TIC382069441_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+142148228,1,data/raw\TIC142148228_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+140757590,1,data/raw\TIC140757590_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+157175641,1,data/raw\TIC157175641_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+229047362,0,data/raw\TIC229047362_planet.fits,ExoFOP TOI (CP/KP),False
+15445546,1,data/raw\TIC15445546_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+272357134,1,data/raw\TIC272357134_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+162585265,1,data/raw\TIC162585265_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+366576758,0,data/raw\TIC366576758_planet.fits,ExoFOP TOI (CP/KP),False
+260128333,1,data/raw\TIC260128333_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+287156968,0,data/raw\TIC287156968_planet.fits,ExoFOP TOI (CP/KP),False
+73177813,1,data/raw\TIC73177813_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+52368076,0,data/raw\TIC52368076_planet.fits,ExoFOP TOI (CP/KP),False
+380127556,1,data/raw\TIC380127556_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+124573851,0,data/raw\TIC124573851_planet.fits,ExoFOP TOI (CP/KP),False
+423530755,1,data/raw\TIC423530755_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+100100827,0,data/raw\TIC100100827_planet.fits,ExoFOP TOI (CP/KP),False
+343019899,0,data/raw\TIC343019899_planet.fits,ExoFOP TOI (CP/KP),False
+5981829,1,data/raw\TIC5981829_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+413376180,0,data/raw\TIC413376180_planet.fits,ExoFOP TOI (CP/KP),False
+399253092,1,data/raw\TIC399253092_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+280206394,0,data/raw\TIC280206394_planet.fits,ExoFOP TOI (CP/KP),False
+360156606,0,data/raw\TIC360156606_planet.fits,ExoFOP TOI (CP/KP),False
+37770169,0,data/raw\TIC37770169_planet.fits,ExoFOP TOI (CP/KP),False
+408310006,0,data/raw\TIC408310006_planet.fits,ExoFOP TOI (CP/KP),False
+433277449,1,data/raw\TIC433277449_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+183985250,0,data/raw\TIC183985250_planet.fits,ExoFOP TOI (CP/KP),False
+455096220,0,data/raw\TIC455096220_planet.fits,ExoFOP TOI (CP/KP),False
+358022169,1,data/raw\TIC358022169_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+181862539,1,data/raw\TIC181862539_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+33595516,0,data/raw\TIC33595516_planet.fits,ExoFOP TOI (CP/KP),False
+279569718,1,data/raw\TIC279569718_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+468987719,0,data/raw\TIC468987719_planet.fits,ExoFOP TOI (CP/KP),False
+417948359,0,data/raw\TIC417948359_planet.fits,ExoFOP TOI (CP/KP),False
+158170594,0,data/raw\TIC158170594_planet.fits,ExoFOP TOI (CP/KP),False
+288735205,0,data/raw\TIC288735205_planet.fits,ExoFOP TOI (CP/KP),False
+167890109,1,data/raw\TIC167890109_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+462267926,1,data/raw\TIC462267926_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+198356533,0,data/raw\TIC198356533_planet.fits,ExoFOP TOI (CP/KP),False
+308991822,1,data/raw\TIC308991822_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+55650590,0,data/raw\TIC55650590_planet.fits,ExoFOP TOI (CP/KP),False
+458199516,1,data/raw\TIC458199516_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+164173105,0,data/raw\TIC164173105_planet.fits,ExoFOP TOI (CP/KP),False
+366989877,0,data/raw\TIC366989877_planet.fits,ExoFOP TOI (CP/KP),False
+69679391,0,data/raw\TIC69679391_planet.fits,ExoFOP TOI (CP/KP),False
+153951307,0,data/raw\TIC153951307_planet.fits,ExoFOP TOI (CP/KP),False
+131625230,1,data/raw\TIC131625230_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+23328912,1,data/raw\TIC23328912_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+25155310,0,data/raw\TIC25155310_planet.fits,ExoFOP TOI (CP/KP),False
+459293335,1,data/raw\TIC459293335_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+211438925,0,data/raw\TIC211438925_planet.fits,ExoFOP TOI (CP/KP),False
+405387285,1,data/raw\TIC405387285_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+347809861,1,data/raw\TIC347809861_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+234825296,0,data/raw\TIC234825296_planet.fits,ExoFOP TOI (CP/KP),False
+452500843,1,data/raw\TIC452500843_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+176910080,1,data/raw\TIC176910080_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+282051803,1,data/raw\TIC282051803_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+429304876,0,data/raw\TIC429304876_planet.fits,ExoFOP TOI (CP/KP),False
+161032923,0,data/raw\TIC161032923_planet.fits,ExoFOP TOI (CP/KP),False
+38462522,1,data/raw\TIC38462522_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+322078735,1,data/raw\TIC322078735_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+294206967,1,data/raw\TIC294206967_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+382028425,1,data/raw\TIC382028425_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+76923707,0,data/raw\TIC76923707_planet.fits,ExoFOP TOI (CP/KP),False
+370133522,0,data/raw\TIC370133522_planet.fits,ExoFOP TOI (CP/KP),False
+261257684,0,data/raw\TIC261257684_planet.fits,ExoFOP TOI (CP/KP),False
+397361078,1,data/raw\TIC397361078_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+53189332,0,data/raw\TIC53189332_planet.fits,ExoFOP TOI (CP/KP),False
+144700903,0,data/raw\TIC144700903_planet.fits,ExoFOP TOI (CP/KP),False
+289801742,1,data/raw\TIC289801742_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+359271092,0,data/raw\TIC359271092_planet.fits,ExoFOP TOI (CP/KP),False
+382266319,1,data/raw\TIC382266319_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+294092966,1,data/raw\TIC294092966_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+232976128,0,data/raw\TIC232976128_planet.fits,ExoFOP TOI (CP/KP),False
+151825527,0,data/raw\TIC151825527_planet.fits,ExoFOP TOI (CP/KP),False
+36440357,0,data/raw\TIC36440357_planet.fits,ExoFOP TOI (CP/KP),False
+299799658,0,data/raw\TIC299799658_planet.fits,ExoFOP TOI (CP/KP),False
+78055054,0,data/raw\TIC78055054_planet.fits,ExoFOP TOI (CP/KP),False
+164767175,0,data/raw\TIC164767175_planet.fits,ExoFOP TOI (CP/KP),False
+219699532,1,data/raw\TIC219699532_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+102840239,0,data/raw\TIC102840239_planet.fits,ExoFOP TOI (CP/KP),False
+401227592,1,data/raw\TIC401227592_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+29344935,0,data/raw\TIC29344935_planet.fits,ExoFOP TOI (CP/KP),False
+111991770,0,data/raw\TIC111991770_planet.fits,ExoFOP TOI (CP/KP),False
+220029715,0,data/raw\TIC220029715_planet.fits,ExoFOP TOI (CP/KP),False
+260647166,0,data/raw\TIC260647166_planet.fits,ExoFOP TOI (CP/KP),False
+293109489,1,data/raw\TIC293109489_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+452631268,1,data/raw\TIC452631268_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+460820330,1,data/raw\TIC460820330_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+323727556,1,data/raw\TIC323727556_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+318185328,1,data/raw\TIC318185328_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+148158540,1,data/raw\TIC148158540_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+36734222,0,data/raw\TIC36734222_planet.fits,ExoFOP TOI (CP/KP),False
+178819686,0,data/raw\TIC178819686_planet.fits,ExoFOP TOI (CP/KP),False
+176937887,1,data/raw\TIC176937887_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+61538902,0,data/raw\TIC61538902_planet.fits,ExoFOP TOI (CP/KP),False
+144065872,0,data/raw\TIC144065872_planet.fits,ExoFOP TOI (CP/KP),False
+454013359,1,data/raw\TIC454013359_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+355152971,1,data/raw\TIC355152971_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+118313102,1,data/raw\TIC118313102_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+224245334,0,data/raw\TIC224245334_planet.fits,ExoFOP TOI (CP/KP),False
+324675819,1,data/raw\TIC324675819_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+302043038,1,data/raw\TIC302043038_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+440777904,0,data/raw\TIC440777904_planet.fits,ExoFOP TOI (CP/KP),False
+390549095,1,data/raw\TIC390549095_eb.fits,TESS EB Catalog (Prsa et al. 2022),False
+160708862,0,data/raw\TIC160708862_planet.fits,ExoFOP TOI (CP/KP),False
+345899523,1,data/raw\TIC345899523_eb.fits,TESS EB Catalog (Prsa et al. 2022),False

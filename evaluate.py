@@ -25,10 +25,7 @@ from src.classifier import TransitCNN
 
 CLASS_NAMES_INDEXED = [
     "Planetary Transit (0)",
-    "Eclipsing Binary (1)",
-    "Stellar Blend (2)",
-    "Stellar Variability (3)",
-    "Noise/Unknown (4)",
+    "Not a Planet (1)",
 ]
 
 
@@ -65,7 +62,7 @@ def run_evaluation(
           f"(not used in training or checkpoint selection).")
 
     print(classification_report(all_targets, all_preds, target_names=CLASS_NAMES_INDEXED, zero_division=0))
-    matrix = confusion_matrix(all_targets, all_preds, labels=range(5))
+    matrix = confusion_matrix(all_targets, all_preds, labels=range(len(CLASS_NAMES_INDEXED)))
     print("Confusion matrix (rows = true, columns = predicted):")
     print(matrix)
 

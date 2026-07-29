@@ -70,7 +70,7 @@ def run_pipeline(
             pipeline_results["predicted_class"] = class_name
             pipeline_results["confidence"] = confidence
             pipeline_results["all_probabilities"] = {
-                CLASS_NAMES[i]: float(probs[i]) for i in range(5)
+                CLASS_NAMES[i]: float(probs[i]) for i in range(len(CLASS_NAMES))
             }
 
             # Step 4: Conditional Physics Engine Characterization Routing

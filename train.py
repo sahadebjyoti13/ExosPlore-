@@ -130,7 +130,7 @@ def train_pipeline_model(
         raise RuntimeError(f"Training set at {train_csv} is empty.")
 
     train_labels = train_dataset.labels()
-    class_counts = np.bincount(train_labels, minlength=5)
+    class_counts = np.bincount(train_labels, minlength=len(CLASS_NAMES))
     missing = [CLASS_NAMES[i] for i, c in enumerate(class_counts) if c == 0]
     if missing:
         print(f"WARNING: zero training examples for: {missing}. "

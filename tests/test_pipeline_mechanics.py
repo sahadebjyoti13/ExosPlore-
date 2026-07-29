@@ -76,11 +76,12 @@ class TestBLSDetection:
 
 class TestClassifierShapes:
     def test_forward_pass_shape(self):
+        from src.classifier import CLASS_NAMES
         model = TransitCNN()
         x = np.random.randn(4, 1, 200).astype(np.float32)
         import torch
         out = model(torch.tensor(x))
-        assert out.shape == (4, 5)
+        assert out.shape == (4, len(CLASS_NAMES))
 
     def test_silently_accepts_wrong_input_length(self):
         """AdaptiveAvgPool1d(32) makes the network shape-compatible with
@@ -90,10 +91,20 @@ class TestClassifierShapes:
         It's arguably worse: silently running on out-of-distribution
         input instead of failing loudly. Documenting the real behavior
         here so it isn't relied on as a safety net elsewhere."""
+        from src.classifier import CLASS_NAMES
         model = TransitCNN()
         import torch
         out = model(torch.randn(1, 1, 150))
-        assert out.shape == (1, 5)  # runs fine; the *meaning* of the output is undefined
+        assert out.shape == (1, len(CLASS_NAMES))  # runs fine; the *meaning* of the output is undefined
+
+    def test_num_classes_is_configurable(self):
+        """The architecture itself still supports the original 5-class
+        taxonomy — only the shipped default changed to 2, because that's
+        what we currently have real, verified data for."""
+        model = TransitCNN(num_classes=5)
+        import torch
+        out = model(torch.randn(2, 1, 200))
+        assert out.shape == (2, 5)
 
 
 class TestCharacterizer:
