@@ -18,11 +18,96 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.title("🌌 ExosPlore — TESS Exoplanet Detection Pipeline")
-st.markdown("""
-An open-source AI pipeline that ingests raw TESS space telescope light curves to automatically detect, classify, and characterize exoplanetary transit signals.
-""")
-st.write("---")
+# --- VISUAL POLISH: one CSS pass, applied consistently, instead of ---
+# --- inline-styled divs scattered through the file. ---
+st.markdown(
+    """
+    <style>
+    .block-container { padding-top: 2rem; max-width: 1200px; }
+    h1 { font-weight: 800; letter-spacing: -0.5px; }
+    [data-testid="stMetric"] {
+        background-color: #141B2D;
+        border: 1px solid #232B42;
+        border-radius: 10px;
+        padding: 14px 16px;
+    }
+    [data-testid="stMetricLabel"] { color: #9AA4BF; font-size: 0.85rem; }
+    .exosplore-hero {
+        background: linear-gradient(135deg, #141B2D 0%, #0B0F19 100%);
+        border: 1px solid #232B42;
+        border-radius: 14px;
+        padding: 22px 26px;
+        margin-bottom: 18px;
+    }
+    .exosplore-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        margin-right: 8px;
+        margin-top: 6px;
+    }
+    .badge-verified { background-color: rgba(46, 204, 113, 0.15); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.4); }
+    .badge-beta { background-color: rgba(241, 196, 15, 0.15); color: #f1c40f; border: 1px solid rgba(241, 196, 15, 0.4); }
+    .stTabs [data-baseweb="tab-list"] { gap: 4px; }
+    .stTabs [data-baseweb="tab"] {
+        background-color: #141B2D;
+        border-radius: 8px 8px 0 0;
+        padding: 8px 16px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+    <div class="exosplore-hero">
+        <h1 style="margin-bottom: 4px;">🌌 ExosPlore</h1>
+        <p style="color: #9AA4BF; font-size: 1.05rem; margin-bottom: 10px;">
+            Open-source pipeline for TESS exoplanet transit detection —
+            physics-based signal detection, verified; ML classification, disclosed.
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+def _render_model_status_banner():
+    """Shows the model's real, current scope and accuracy — pulled live from
+    models/metrics.json rather than a hardcoded claim in the UI, so this
+    banner stays honest automatically as the model gets retrained on more
+    data instead of silently going stale."""
+    import json
+
+    badges = ['<span class="exosplore-badge badge-verified">Preprocessing + BLS: verified</span>']
+
+    metrics_path = "models/metrics.json"
+    if os.path.exists(metrics_path):
+        try:
+            with open(metrics_path) as f:
+                m = json.load(f)
+            n_test = m.get("n_test_examples", "?")
+            acc = m.get("classification_report", {}).get("accuracy")
+            acc_str = f"{acc * 100:.0f}%" if isinstance(acc, (int, float)) else "?"
+            badges.append(
+                f'<span class="exosplore-badge badge-beta">Classifier: {acc_str} accuracy '
+                f"on {n_test} held-out real examples (2-class: Planet vs Not-a-Planet)</span>"
+            )
+        except Exception:
+            badges.append('<span class="exosplore-badge badge-beta">Classifier: metrics unreadable</span>')
+    else:
+        badges.append('<span class="exosplore-badge badge-beta">Classifier: not yet trained — see train.py</span>')
+
+    badges.append('<span class="exosplore-badge badge-beta">BLS period search: 0.5–60 days</span>')
+
+    st.markdown(" ".join(badges), unsafe_allow_html=True)
+    st.write("")
+
+
+_render_model_status_banner()
 
 
 # --- SYSTEM CACHING ---
@@ -76,9 +161,12 @@ if "target_file" not in st.session_state:
     st.session_state.target_file = None
 if "target_name" not in st.session_state:
     st.session_state.target_name = None
+if "batch_results" not in st.session_state:
+    st.session_state.batch_results = None
 
 input_method = st.sidebar.radio(
-    "Choose Input Method", ["Enter TIC ID (Direct MAST Download)", "Upload .fits File"]
+    "Choose Input Method",
+    ["Enter TIC ID (Direct MAST Download)", "Upload .fits File", "Batch Analysis (Multiple Files)"],
 )
 
 if input_method == "Upload .fits File":
@@ -127,23 +215,49 @@ elif input_method == "Enter TIC ID (Direct MAST Download)":
                     st.sidebar.error(f"Download failed: {str(e)}")
                     st.session_state.target_file = None
 
-st.sidebar.markdown("---")
-st.sidebar.markdown("### ⚙️ Big Data Processing")
-st.sidebar.markdown("Prepare Sector datasets for rapid network training.")
+elif input_method == "Batch Analysis (Multiple Files)":
+    # Real feature, replacing the old "Execute Pre-Caching Pipeline" button —
+    # that button re-cached the TRAINING catalog (data/curated/train.csv),
+    # which has nothing to do with whatever a visitor uploads. This does
+    # what people actually asked for: run the pipeline over many of their
+    # own light curves at once (e.g. a whole TESS sector) and get one table.
+    st.session_state.target_file = None  # single-file view is not shown in batch mode
 
-if st.sidebar.button("⚡ Execute Pre-Caching Pipeline"):
-    with st.sidebar.spinner(
-        "Compressing raw FITS telemetry into binary matrices... Please wait."
-    ):
-        import subprocess
+    st.sidebar.markdown("Upload as many `.fits` files as you want analyzed together.")
+    batch_files = st.sidebar.file_uploader(
+        "Upload Multiple TESS .fits Files", type=["fits"], accept_multiple_files=True
+    )
 
-        try:
-            subprocess.run(["python", "-m", "src.cache_dataset"], check=True)
-            st.sidebar.success(
-                "✅ Pre-Caching Complete! Arrays saved to data/processed/"
-            )
-        except Exception as e:
-            st.sidebar.error(f"❌ Caching Failed: {str(e)}")
+    if st.sidebar.button("🔭 Run Batch Analysis") and batch_files:
+        os.makedirs("temp_batch", exist_ok=True)
+        rows = []
+        progress = st.sidebar.progress(0.0, text="Starting batch analysis...")
+
+        for i, uf in enumerate(batch_files):
+            temp_path = os.path.join("temp_batch", uf.name)
+            with open(temp_path, "wb") as f:
+                f.write(uf.getbuffer())
+
+            progress.progress((i) / len(batch_files), text=f"Analyzing {uf.name} ({i + 1}/{len(batch_files)})...")
+            try:
+                res = process_data(temp_path, model_path="models/transit_cnn.pth")
+                top = res.get("top_candidate") or {}
+                rows.append({
+                    "File": uf.name,
+                    "Predicted Class": res.get("predicted_class") or "N/A (no trained model)",
+                    "Confidence": f"{res['confidence'] * 100:.1f}%" if res.get("confidence") is not None else "N/A",
+                    "Period (days)": round(top.get("period", float("nan")), 4) if top else None,
+                    "SNR": round(top.get("snr_bls", float("nan")), 2) if top else None,
+                    "Status": res.get("status", "Success"),
+                })
+            except Exception as e:
+                rows.append({
+                    "File": uf.name, "Predicted Class": "ERROR", "Confidence": "N/A",
+                    "Period (days)": None, "SNR": None, "Status": str(e),
+                })
+
+        progress.progress(1.0, text="Batch analysis complete.")
+        st.session_state.batch_results = pd.DataFrame(rows)
 
 st.sidebar.markdown("---")
 
@@ -159,7 +273,27 @@ else:
 # ==========================================
 # MAIN EXECUTION ROUTING LOOP
 # ==========================================
-if st.session_state.target_file is not None and os.path.exists(
+if input_method == "Batch Analysis (Multiple Files)" and st.session_state.batch_results is not None:
+    df_batch = st.session_state.batch_results
+    st.success(f"Batch analysis complete — {len(df_batch)} file(s) processed.")
+    st.dataframe(df_batch, use_container_width=True)
+
+    n_planets = (df_batch["Predicted Class"] == "Planetary Transit").sum()
+    n_not = (df_batch["Predicted Class"] == "Not a Planet").sum()
+    n_err = (df_batch["Predicted Class"] == "ERROR").sum()
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Predicted Planets", int(n_planets))
+    c2.metric("Predicted Not-a-Planet", int(n_not))
+    c3.metric("Errors", int(n_err))
+
+    st.download_button(
+        "⬇️ Download Results as CSV",
+        data=df_batch.to_csv(index=False).encode("utf-8"),
+        file_name="exosplore_batch_results.csv",
+        mime="text/csv",
+    )
+
+elif st.session_state.target_file is not None and os.path.exists(
     st.session_state.target_file
 ):
     target_path = st.session_state.target_file

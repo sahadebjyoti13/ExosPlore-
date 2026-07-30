@@ -39,8 +39,14 @@ def run_bls(time, flux, flux_err):
     # Initialize the astropy BLS engine
     bls = BoxLeastSquares(time * u.day, flux, dy=flux_err)
 
-    # Define exact grid as per ISRO requirements
-    periods = np.linspace(0.5, 15.0, 10000)
+    # Period grid: widened from the original ISRO hackathon spec's 0.5-15
+    # days to 0.5-60 days. The original range made real, confirmed planets
+    # with longer orbits (e.g. TOI-700's outer planets, ~10-37 days)
+    # structurally undetectable — not a classifier failure, just a search
+    # range that never looked there. Point count scaled up proportionally
+    # (10,000 -> 30,000) to keep roughly the same period resolution across
+    # the wider range; this makes the search ~3x slower per light curve.
+    periods = np.linspace(0.5, 60.0, 30000)
     durations = np.array([0.05, 0.1, 0.15, 0.2])  # fraction of period
 
     # Run power spectrum search
